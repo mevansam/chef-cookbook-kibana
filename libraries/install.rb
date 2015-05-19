@@ -72,7 +72,10 @@ class Chef
             node.set['kibana'][kb_args[:name]]['web_dir'] = "#{kb_args[:install_dir]}/current/src"
 
           when 'file'
-            @run_context.include_recipe 'libarchive::default'
+
+            # MKS: Removed dependency on libarchive to extract file as the version required
+            # conflicted with other dependencies. This needs to be validated when upgrading.
+
             temp_file = "kibana_#{kb_args[:name]}_#{kb_args[:version]}_#{kb_args[:name]}.tar.gz"
             temp_path = Chef::Config[:file_cache_path]
             case kb_args[:file_type]
@@ -83,16 +86,16 @@ class Chef
                 action [:create]
               end
 
-              libarchive_file temp_file do
-                path "#{temp_path}/#{temp_file}"
-                extract_to kb_args[:install_dir]
-                owner kb_args[:user]
-                action [:extract]
+              execute "extracting downloaded #{temp_file}" do
+                command "tar xvf #{temp_path}/#{temp_file} "
+                cwd kb_args[:install_dir]
+                user kb_args[:user]
                 not_if { ::File.exist?("#{kb_args[:install_dir]}/kibana-#{kb_args[:version]}") }
               end
 
               link "#{kb_args[:install_dir]}/current" do
                 to "#{kb_args[:install_dir]}/kibana-#{kb_args[:version]}"
+                user kb_args[:user]
               end
 
               node.set['kibana'][kb_args[:name]]['web_dir'] = "#{kb_args[:install_dir]}/current"
